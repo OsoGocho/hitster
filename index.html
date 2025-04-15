@@ -1,0 +1,423 @@
+<!-- https://forflutna.se/createqr -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HITSTER - Visualizador PDF con QRs</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+		h1 {
+		  font-size: 42px; /* Tamaño grande para el título */
+		  font-weight: 700; /* Título en negrita */
+		  margin-bottom: 30px; /* Espacio inferior */
+		  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.4); /* Sombra suave para resaltar el texto */
+		}
+
+		 input[type="file"] {
+		  display: none; /* Oculta el input de archivo nativo */
+		}
+
+		label[for="fileInput"] {
+		  background-color: #ffcc00; /* Fondo amarillo para el botón */
+		  color: #1e1e1e; /* Texto oscuro para contraste */
+		  font-weight: 600; /* Texto semi-negrita */
+		  padding: 12px 24px; /* Espaciado interno horizontal y vertical */
+		  border-radius: 12px; /* Bordes redondeados */
+		  cursor: pointer; /* Cambia el cursor al pasar por encima */
+		  transition: background-color 0.3s; /* Transición suave de color al hacer hover */
+		}
+
+		label[for="fileInput"]:hover {
+		  background-color: #e6b800; /* Color más oscuro al pasar el mouse */
+		}
+
+		select {
+		  padding: 12px; /* Espaciado interno */
+		  font-size: 16px; /* Tamaño de fuente medio */
+		  border-radius: 10px; /* Bordes redondeados */
+		  background: #ffffff10; /* Fondo blanco muy translúcido */
+		  color: white; /* Texto blanco */
+		  border: 2px solid #ffffff30; /* Borde translúcido */
+		  font-weight: 500; /* Texto semi-negrita */
+		  cursor: pointer; /* Muestra que es clicable */
+		  transition: border 0.3s; /* Transición suave del borde */
+		}
+
+		select option {
+		  color: black; /* Color del texto de las opciones */
+		  background: white; /* Fondo blanco para que haya buen contraste */
+		}
+
+		select:hover {
+		  border-color: #fff; /* Borde blanco completo al pasar el mouse */
+		}
+
+        #pdf-container {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .qr-square {
+            position: absolute;
+            border-radius: 10px;
+            border: 3px solid white;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            opacity: 1; /* Color al 100% */
+        }
+
+
+    </style>
+</head>
+<body>
+   <h1>HITSTER</h1>
+
+<div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 rounded-lg shadow-md w-80">
+    <label for="fileInput" class="cursor-pointer bg-blue-500 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-600 transition">
+        📂 Subir PDF
+    </label>
+    <input type="file" id="fileInput" accept="application/pdf" multiple class="hidden">
+    
+    <select id="pdfSelect" class="w-full p-2 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-blue-300">
+        <option value="" disabled selected>📑 Selecciona un PDF</option>
+    </select>
+</div>
+
+<div id="pdf-container" class="relative flex justify-center items-center h-screen">
+    <canvas id="pdf-canvas" style="display: none;"></canvas>
+</div>
+
+<!-- Controles de navegación -->
+<div style="display: flex; justify-content: space-between; align-items: center; position: fixed; top: 50%; width: calc(100% - 440px); transform: translateY(-50%); z-index: 1000; pointer-events: none;">
+  <!-- Botón de navegación hacia atrás -->
+  <button id="prevPage" style="pointer-events: auto; background: linear-gradient(135deg, #ff7e5f, #feb47b); border: none; border-radius: 50%; width: 120px; height: 120px; display: flex; justify-content: center; align-items: center; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; cursor: pointer;">
+    <svg width="50" height="50" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+      <path d="M15 6L9 12L15 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+
+  <!-- Botón de navegación hacia adelante -->
+  <button id="nextPage" style="pointer-events: auto; background: linear-gradient(135deg, #6a11cb, #2575fc); border: none; border-radius: 50%; width: 120px; height: 120px; display: flex; justify-content: center; align-items: center; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3); transition: all 0.3s ease; cursor: pointer;">
+    <svg width="50" height="50" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9 6L15 12L9 18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+</div>
+
+
+
+
+
+
+
+<div style="display: flex; gap: 20px; justify-content: center; margin-top: 10px;">
+    <p id="pdfIndexDisplay" style="display: none;">Índice actual: 0</p>
+    <p id="coordinateDisplay" style="display: none;">Coordenada del cuadro seleccionado: 0</p>
+</div>
+
+
+
+	
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const pdfSelect = document.getElementById('pdfSelect');
+        const pdfContainer = document.getElementById('pdf-container');
+        const canvas = document.getElementById('pdf-canvas');
+        const context = canvas.getContext('2d');
+		const colorCuadrado = 172;
+
+        let pdfDocs = [];
+        let currentPdfIndex = null;
+		let currentCoordinate = null;
+		let casillasJugadas = [];
+
+        const margen_arriba = 77;
+        const ancho = 300;
+        const alto = 300;
+
+        function naturalSortWindows(a, b) {
+            const regex = /(\d+)|(\D+)/g;
+            const partsA = a.name.match(regex).map(part => (isNaN(part) ? part : Number(part)));
+            const partsB = b.name.match(regex).map(part => (isNaN(part) ? part : Number(part)));
+
+            for (let i = 0; i < Math.min(partsA.length, partsB.length); i++) {
+                if (partsA[i] !== partsB[i]) {
+                    return partsA[i] < partsB[i] ? -1 : 1;
+                }
+            }
+            return partsA.length - partsB.length;
+        }
+
+        fileInput.addEventListener('change', event => {
+            let files = Array.from(event.target.files)
+                .filter(file => file.type === 'application/pdf')
+                .sort(naturalSortWindows);
+
+            if (files.length > 0) {
+                pdfDocs = [];
+                pdfSelect.innerHTML = '<option value="" disabled selected>Selecciona un PDF</option>';
+
+                files.forEach((file, index) => {
+                    const fileReader = new FileReader();
+                    fileReader.onload = function() {
+                        const loadingTask = pdfjsLib.getDocument({ data: fileReader.result });
+                        loadingTask.promise.then(pdf => {
+                            pdfDocs.push({ pdf, name: file.name });
+
+                            pdfDocs.sort(naturalSortWindows);
+
+                            pdfSelect.innerHTML = '<option value="" disabled selected>Selecciona un PDF</option>';
+                            pdfDocs.forEach((doc, i) => {
+                                const option = document.createElement('option');
+                                option.value = i;
+                                option.textContent = doc.name;
+                                pdfSelect.appendChild(option);
+                            });
+                        }).catch(err => {
+                            alert('Error al cargar el PDF: ' + err.message);
+                        });
+                    };
+                    fileReader.readAsArrayBuffer(file);
+                });
+            } else {
+                alert('Por favor, selecciona uno o más archivos PDF.');
+            }
+        });
+
+        pdfSelect.addEventListener('change', event => {
+            const index = parseInt(event.target.value, 10);
+            loadPdf(index);
+        });
+
+        function loadPdf(index) {
+            currentPdfIndex = index;
+			actualizarIndice();
+            renderPage();
+        }
+		
+		function gonext() {
+			if (currentPdfIndex + 2 < pdfDocs.length) {
+				currentPdfIndex += 2;
+				actualizarIndice();
+				renderPage();
+			}
+		}
+
+		function goprev() {
+			if (currentPdfIndex - 2 >= 0) {
+				currentPdfIndex -= 2;
+				actualizarIndice();
+				renderPage();
+			}
+		}	
+
+        function renderPage() {
+            if (currentPdfIndex === null || !pdfDocs[currentPdfIndex]) return;
+
+            const pdf = pdfDocs[currentPdfIndex].pdf;
+            pdf.getPage(1).then(page => {
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                canvas.style.display = 'block'; // Muestra el canvas cuando hay contenido
+				const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+                page.render(renderContext);
+
+                document.querySelectorAll('.qr-square').forEach(square => square.remove());
+
+                const rows = 4;
+                const cols = 3;
+                const xStart = 0;
+                const yStart = margen_arriba;
+
+                let qrAreas = [];
+                for (let row = 0; row < rows; row++) {
+                    for (let col = 0; col < cols; col++) {
+                        const x = xStart + col * ancho;
+                        const y = yStart + row * alto;
+                        const label = `${String.fromCharCode(65 + col)}${row + 1}`;
+                        qrAreas.push({ x, y, width: ancho, height: alto, label });
+                    }
+                }
+
+                qrAreas.forEach(area => {
+                    createQrSquare(area);
+                });
+            }).catch(err => {
+                alert('Error al renderizar la página: ' + err.message);
+            });
+        }
+
+        function createQrSquare(area) {
+		const qrSquare = document.createElement('div');
+		qrSquare.classList.add('qr-square');
+		qrSquare.style.left = `${area.x}px`;
+		qrSquare.style.top = `${area.y}px`;
+		qrSquare.style.width = `${area.width}px`;
+		qrSquare.style.height = `${area.height}px`;
+		
+		
+		<!-- hsla(${hue}, 80%, 50%, 1): -->
+		<!-- hue: Color en la rueda cromática. -->
+		<!-- 80%: Saturación alta para colores vivos. -->
+		<!-- 50%: Luminosidad media. -->
+		<!-- 1: Opacidad total. -->
+		
+		// Color inicial con opacidad 100%
+		let hue = Math.random() * 360;
+		qrSquare.style.backgroundColor = `hsla(${colorCuadrado}, 50%, 50%, 1)`;
+
+		const label = document.createElement('span');
+		label.textContent = area.label;
+		qrSquare.appendChild(label);
+		
+		
+		// Oscurecer el fondo si la casilla ya ha sido seleccionada en este índice
+		if (casillasJugadas[currentPdfIndex] && casillasJugadas[currentPdfIndex].includes(area.label)) {
+			qrSquare.style.backgroundColor = `hsla(${colorCuadrado}, 50%, 20%, 1)`; // Mucho más oscuro
+		}
+
+		// Mostrar respuesta
+		if (!esQRFichero()) {
+			const coordenadaCorrecta = area.label
+				.replace(/A/g, 'TEMP')  // Reemplaza todas las A por TEMP
+				.replace(/C/g, 'A')     // Reemplaza todas las C por A
+				.replace(/TEMP/g, 'C');
+			if (currentCoordinate == coordenadaCorrecta){
+				qrSquare.style.backgroundColor = `hsla(${hue}, 80%, 50%, 0.1)`;
+			}
+		}
+	
+		// Evento de clic para cambiar la transparencia
+		qrSquare.addEventListener('click', () => {	
+			let currentColor = qrSquare.style.backgroundColor;
+
+			// Si ya tiene transparencia, vuelve al color original
+			if (currentColor.includes('rgba') || currentColor.includes('hsla(., ., ., 0.1)')) {
+				qrSquare.style.backgroundColor = `hsla(${hue}, 80%, 50%, 1)`;
+				
+				if (esQRFichero()) {
+					resolver(area.label);
+				} else {
+					volverAtras();
+				}
+						
+			} else {
+				qrSquare.style.backgroundColor = `hsla(${hue}, 80%, 50%, 0.1)`; // 90% transparente
+			}
+			currentCoordinate = area.label;
+			document.getElementById('coordinateDisplay').textContent = `Coordenada del cuadro seleccionado: ${area.label}`;
+		});
+
+		pdfContainer.appendChild(qrSquare);
+		}
+
+
+        function resolver(casillajugada) {
+			if (currentPdfIndex === null || pdfDocs.length === 0) return;
+
+			if (currentPdfIndex + 1 >= pdfDocs.length) {
+				// Mostrar un mensaje en el centro de la pantalla cuando no hay más PDFs
+				const endMessage = document.createElement('div');
+				endMessage.textContent = "¡Fin del juego!";
+				endMessage.style.position = "fixed";
+				endMessage.style.top = "50%";
+				endMessage.style.left = "50%";
+				endMessage.style.transform = "translate(-50%, -50%)";
+				endMessage.style.background = "rgba(0, 0, 0, 0.8)";
+				endMessage.style.color = "white";
+				endMessage.style.padding = "20px";
+				endMessage.style.borderRadius = "10px";
+				endMessage.style.fontSize = "24px";
+				endMessage.style.fontWeight = "bold";
+				document.body.appendChild(endMessage);
+				
+				setTimeout(() => {
+					document.body.removeChild(endMessage);
+				}, 3000); // El mensaje desaparece después de 3 segundos
+			} else {
+			
+			 if (!casillasJugadas[currentPdfIndex]) {
+					casillasJugadas[currentPdfIndex] = [];
+				}
+
+				// Agregar la jugada al array correspondiente
+				casillasJugadas[currentPdfIndex].push(casillajugada);
+			
+				loadPdf(currentPdfIndex + 1);				
+			}
+		}
+		
+		function volverAtras() {
+		if (currentPdfIndex - 1 < 0) {
+				// Mostrar un mensaje en el centro de la pantalla cuando no hay más PDFs
+				const endMessage = document.createElement('div');
+				endMessage.textContent = "¡Está mal configurado, escoge de nuevo los pdfs siendo el primero un pdf que contenga Qrs!";
+				endMessage.style.position = "fixed";
+				endMessage.style.top = "50%";
+				endMessage.style.left = "50%";
+				endMessage.style.transform = "translate(-50%, -50%)";
+				endMessage.style.background = "rgba(0, 0, 0, 0.8)";
+				endMessage.style.color = "white";
+				endMessage.style.padding = "20px";
+				endMessage.style.borderRadius = "10px";
+				endMessage.style.fontSize = "24px";
+				endMessage.style.fontWeight = "bold";
+				document.body.appendChild(endMessage);
+				
+				setTimeout(() => {
+					document.body.removeChild(endMessage);
+				}, 3000); // El mensaje desaparece después de 3 segundos
+			} else {
+				loadPdf(currentPdfIndex - 1);
+			}
+        }
+		
+		function esQRFichero() {
+			if (currentPdfIndex === null || !pdfDocs[currentPdfIndex]) return false;
+
+			const filename = pdfDocs[currentPdfIndex].name;
+			const match = filename.match(/_(\d+)_/); // Busca un número entre guiones bajos
+
+			if (match) {
+				const number = parseInt(match[1], 10);
+				return number % 2 === 0; // Retorna true si el número es par
+			}
+
+			return false; // Retorna false si no encuentra un número válido
+		}
+		
+
+		function actualizarIndice() {
+			const display = document.getElementById('pdfIndexDisplay');
+			display.textContent = currentPdfIndex !== null ? `Índice actual: ${currentPdfIndex}` : '';
+		}
+		
+		document.getElementById("prevPage").addEventListener("click", goprev);
+		document.getElementById("nextPage").addEventListener("click", gonext);
+    </script>
+</body>
+</html>
