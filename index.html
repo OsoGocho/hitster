@@ -400,6 +400,9 @@
 	
 		// Evento de clic para cambiar la transparencia
 		qrSquare.addEventListener('click', () => {	
+			//hacer label A1, A2, etc... invisibles cuandos e hace click
+			label.style.visibility = 'hidden';
+
 			let currentColor = qrSquare.style.backgroundColor;
 
 			// Si ya tiene transparencia, vuelve al color original
