@@ -89,6 +89,17 @@
     </style>
 </head>
 <body>
+<a href="https://forflutna.se/createqr" target="_blank" style="
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 14px;
+    color: white;
+    text-decoration: underline;
+    z-index: 999;
+">https://forflutna.se/createqr</a>
+
+
    <h1>HITSTER</h1>
 
 <div class="flex flex-col items-center space-y-4 p-4 bg-gray-100 rounded-lg shadow-md w-80">
@@ -154,6 +165,82 @@
         const margen_arriba = 77;
         const ancho = 300;
         const alto = 300;
+		
+		
+		
+		
+		
+		
+		
+		
+		const pdfUrls = [
+  'pdfs/page_0_back.pdf',
+  'pdfs/page_1_front.pdf',
+  'pdfs/page_2_back.pdf',
+    'pdfs/page_3_front.pdf',
+  // Agrega más archivos aquí
+];
+		
+		
+		
+		
+		
+		
+		window.addEventListener('DOMContentLoaded', () => {
+    const pdfUrls = [
+        'pdfs/archivo_0_.pdf',
+        'pdfs/archivo_1_.pdf',
+        'pdfs/archivo_2_.pdf'
+    ];
+
+    Promise.all(pdfUrls.map(url => fetch(url).then(res => res.arrayBuffer())))
+        .then(buffers => {
+            return Promise.all(buffers.map((buffer, index) =>
+                pdfjsLib.getDocument({ data: buffer }).promise.then(pdf => ({
+                    pdf,
+                    name: pdfUrls[index].split('/').pop()
+                }))
+            ));
+        })
+        .then(docs => {
+            pdfDocs = docs.sort(naturalSortWindows);
+            pdfSelect.innerHTML = '<option value="" disabled selected>Selecciona un PDF</option>';
+            pdfDocs.forEach((doc, i) => {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = doc.name;
+                pdfSelect.appendChild(option);
+            });
+
+            // Cargar el primero automáticamente
+            loadPdf(0);
+        })
+        .catch(err => {
+            console.error('Error al cargar los PDFs:', err);
+        });
+});
+
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 
         function naturalSortWindows(a, b) {
             const regex = /(\d+)|(\D+)/g;
