@@ -173,6 +173,13 @@
 		
 		
 		
+
+		
+		
+		
+		
+		
+		window.addEventListener('DOMContentLoaded', () => {
 		const pdfUrls = [
   'pdfs/page_0_back.pdf',
   'pdfs/page_1_front.pdf',
@@ -181,17 +188,6 @@
   // Agrega más archivos aquí
 ];
 		
-		
-		
-		
-		
-		
-		window.addEventListener('DOMContentLoaded', () => {
-    const pdfUrls = [
-        'pdfs/archivo_0_.pdf',
-        'pdfs/archivo_1_.pdf',
-        'pdfs/archivo_2_.pdf'
-    ];
 
     Promise.all(pdfUrls.map(url => fetch(url).then(res => res.arrayBuffer())))
         .then(buffers => {
